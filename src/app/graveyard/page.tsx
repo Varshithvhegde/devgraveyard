@@ -63,6 +63,13 @@ export default function GraveyardPage({ searchParams }: PageProps) {
         <div className="mb-2 text-[10px] text-zinc-700 uppercase tracking-[0.3em] font-mono">
           Memorial Wall
         </div>
+        <div className="flex items-center gap-3 mb-4">
+          <Link href="/graveyard-3d"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-purple-400 hover:text-purple-300 transition-all hover:bg-purple-950/20"
+            style={{ border: "1px solid rgba(139,92,246,0.2)" }}>
+            🌐 Switch to 3D View
+          </Link>
+        </div>
         <h1 className="font-gothic text-5xl text-[#f5f0e8] mb-3"
           style={{ textShadow: "0 0 60px rgba(139,92,246,0.2)" }}>
           The Graveyard

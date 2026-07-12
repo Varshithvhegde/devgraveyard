@@ -75,12 +75,23 @@ export default function Navbar() {
           <Link
             href="/graveyard"
             className={`px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
-              isActive("/graveyard")
+              isActive("/graveyard") && !isActive("/graveyard-3d")
                 ? "text-purple-300 bg-purple-950/50"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
             }`}
           >
             Browse
+          </Link>
+          <Link
+            href="/graveyard-3d"
+            className={`px-3 py-1.5 text-sm rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
+              isActive("/graveyard-3d")
+                ? "text-purple-300 bg-purple-950/50"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+            }`}
+          >
+            <span className="text-xs">🌐</span>
+            <span>3D</span>
           </Link>
 
           {user ? (
