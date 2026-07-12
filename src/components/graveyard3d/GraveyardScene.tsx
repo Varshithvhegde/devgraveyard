@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useRef, useState, useCallback, useEffect } from "react";
+import { Suspense, useRef, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars, Text } from "@react-three/drei";
 import * as THREE from "three";
@@ -10,27 +10,32 @@ import { ageString } from "@/lib/github/analyze";
 // ─── Ground ──────────────────────────────────────────────────────────────────
 function Ground() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-      <planeGeometry args={[80, 80]} />
-      <meshLambertMaterial color="#1a1a14" />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+      <planeGeometry args={[100, 100]} />
+      <meshStandardMaterial color="#1c1a10" roughness={1} />
     </mesh>
   );
 }
 
-// ─── Grass patches ───────────────────────────────────────────────────────────
-function GrassPatches() {
-  const patches = Array.from({ length: 120 }, (_, i) => ({
-    x: (Math.random() - 0.5) * 60,
-    z: (Math.random() - 0.5) * 60,
-    scale: 0.3 + Math.random() * 0.5,
-    rot: Math.random() * Math.PI,
-  }));
+// ─── Grass tufts ─────────────────────────────────────────────────────────────
+function GrassTufts() {
+  const tufts = useRef<Array<{ x: number; z: number; s: number; r: number }>>([]);
+  if (tufts.current.length === 0) {
+    for (let i = 0; i < 200; i++) {
+      tufts.current.push({
+        x: (Math.random() - 0.5) * 70,
+        z: (Math.random() - 0.5) * 70,
+        s: 0.2 + Math.random() * 0.5,
+        r: Math.random() * Math.PI,
+      });
+    }
+  }
   return (
     <group>
-      {patches.map((p, i) => (
-        <mesh key={i} position={[p.x, 0.05, p.z]} rotation={[0, p.rot, 0]}>
-          <planeGeometry args={[p.scale, p.scale * 1.5]} />
-          <meshLambertMaterial color="#1f2a0e" side={THREE.DoubleSide} transparent opacity={0.7} />
+      {tufts.current.map((t, i) => (
+        <mesh key={i} position={[t.x, 0.06, t.z]} rotation={[Math.PI / 2, t.r, 0]}>
+          <planeGeometry args={[t.s, t.s * 1.6]} />
+          <meshBasicMaterial color="#1e2a0a" side={THREE.DoubleSide} transparent opacity={0.6} />
         </mesh>
       ))}
     </group>
@@ -38,32 +43,31 @@ function GrassPatches() {
 }
 
 // ─── Bare tree ────────────────────────────────────────────────────────────────
-function BareTree({ position }: { position: [number, number, number] }) {
+function BareTree({ pos }: { pos: [number, number, number] }) {
+  const branches: Array<[number, number, number, number, number, number, number]> = [
+    [0.5, 3.8, 0, 0, 0, -0.5, 1.4],
+    [-0.6, 3.5, 0, 0, 0, 0.55, 1.3],
+    [0.3, 4.4, 0.3, -0.3, 0, -0.25, 1.2],
+    [-0.35, 4.1, -0.25, 0.25, 0, 0.3, 1.1],
+    [0.1, 5.0, 0, 0, 0, -0.15, 0.9],
+  ];
   return (
-    <group position={position}>
-      {/* trunk */}
+    <group position={pos}>
       <mesh castShadow position={[0, 2.5, 0]}>
-        <cylinderGeometry args={[0.12, 0.22, 5, 6]} />
-        <meshLambertMaterial color="#1a1208" />
+        <cylinderGeometry args={[0.1, 0.2, 5, 7]} />
+        <meshStandardMaterial color="#1a1208" roughness={1} />
       </mesh>
-      {/* branches */}
-      {[
-        [0.6, 4.2, 0, 0, 0, -0.4],
-        [-0.7, 3.8, 0, 0, 0, 0.5],
-        [0.3, 5, 0.4, -0.3, 0, -0.2],
-        [-0.4, 4.5, -0.3, 0.2, 0, 0.3],
-        [0, 5.5, 0, 0, 0, -0.15],
-      ].map(([x, y, z, rx, ry, rz], i) => (
-        <mesh key={i} position={[x, y, z as number]} rotation={[rx as number, ry as number, rz as number]} castShadow>
-          <cylinderGeometry args={[0.04, 0.1, 1.4, 5]} />
-          <meshLambertMaterial color="#1a1208" />
+      {branches.map(([x, y, z, rx, ry, rz, len], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[rx, ry, rz]} castShadow>
+          <cylinderGeometry args={[0.03, 0.09, len, 5]} />
+          <meshStandardMaterial color="#1a1208" roughness={1} />
         </mesh>
       ))}
     </group>
   );
 }
 
-// ─── Tombstone 3D ─────────────────────────────────────────────────────────────
+// ─── 3D Tombstone ─────────────────────────────────────────────────────────────
 function Tombstone3D({
   tombstone,
   position,
@@ -83,25 +87,24 @@ function Tombstone3D({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.PointLight>(null);
-  const hoverProgress = useRef(0);
+  const t = useRef(0);
 
   useFrame((_, delta) => {
-    if (!groupRef.current) return;
+    if (!groupRef.current || !glowRef.current) return;
+    t.current += delta * (isHovered ? 8 : 8);
     const target = isHovered ? 1 : 0;
-    hoverProgress.current += (target - hoverProgress.current) * 8 * delta;
-    const h = hoverProgress.current;
+    const cur = groupRef.current.userData.h ?? 0;
+    const next = cur + (target - cur) * Math.min(1, delta * 7);
+    groupRef.current.userData.h = next;
 
-    // Hover: float up + tilt back slightly
-    groupRef.current.position.y = h * 0.18;
-    groupRef.current.rotation.x = h * -0.06;
-
-    if (glowRef.current) {
-      glowRef.current.intensity = h * 1.2;
-    }
+    groupRef.current.position.y = next * 0.22;
+    groupRef.current.rotation.x = next * -0.05;
+    glowRef.current.intensity = next * 2.5;
   });
 
-  const stoneColor = isHovered ? "#3d3858" : "#2a2840";
-  const nameColor = isHovered ? "#e8e4f8" : "#c8c0e0";
+  const h = isHovered;
+  const stone = h ? "#4a4570" : "#353255";
+  const face  = h ? "#524e7a" : "#3e3a60";
 
   return (
     <group
@@ -112,94 +115,95 @@ function Tombstone3D({
       onPointerOver={(e) => { e.stopPropagation(); onHover(); document.body.style.cursor = "pointer"; }}
       onPointerOut={() => { onUnhover(); document.body.style.cursor = "default"; }}
     >
-      {/* Glow light on hover */}
-      <pointLight ref={glowRef} color="#a78bfa" intensity={0} distance={3} position={[0, 1.2, 0.3]} />
+      {/* Hover purple glow */}
+      <pointLight ref={glowRef} color="#a78bfa" intensity={0} distance={4} position={[0, 1.5, 0.4]} />
 
-      {/* Stone base / pedestal */}
-      <mesh castShadow receiveShadow position={[0, 0.08, 0]}>
-        <boxGeometry args={[0.72, 0.16, 0.28]} />
-        <meshLambertMaterial color="#1e1c2e" />
+      {/* Base slab */}
+      <mesh receiveShadow position={[0, 0.07, 0]}>
+        <boxGeometry args={[0.82, 0.14, 0.32]} />
+        <meshStandardMaterial color="#28243c" roughness={0.9} />
       </mesh>
 
-      {/* Main stone body */}
-      <mesh castShadow receiveShadow position={[0, 0.85, 0]}>
-        <boxGeometry args={[0.6, 1.4, 0.18]} />
-        <meshLambertMaterial color={stoneColor} />
+      {/* Stone body */}
+      <mesh castShadow receiveShadow position={[0, 0.88, 0]}>
+        <boxGeometry args={[0.66, 1.5, 0.22]} />
+        <meshStandardMaterial color={stone} roughness={0.85} />
       </mesh>
 
-      {/* Arch top */}
-      <mesh castShadow position={[0, 1.6, 0]}>
-        <cylinderGeometry args={[0.3, 0.3, 0.18, 12, 1, false, 0, Math.PI]} />
-        <meshLambertMaterial color={stoneColor} />
+      {/* Arch cap */}
+      <mesh castShadow position={[0, 1.65, 0]}>
+        <cylinderGeometry args={[0.33, 0.33, 0.22, 16, 1, false, 0, Math.PI]} />
+        <meshStandardMaterial color={stone} roughness={0.85} />
       </mesh>
 
-      {/* Front face slightly lighter */}
-      <mesh position={[0, 0.85, 0.092]}>
-        <boxGeometry args={[0.56, 1.38, 0.001]} />
-        <meshLambertMaterial color={isHovered ? "#4a4568" : "#312e50"} />
+      {/* Front face panel (slightly lighter) */}
+      <mesh position={[0, 0.88, 0.112]}>
+        <boxGeometry args={[0.62, 1.48, 0.002]} />
+        <meshStandardMaterial color={face} roughness={0.8} />
       </mesh>
 
-      {/* Engraved name text */}
+      {/* Project name */}
       <Text
-        position={[0, 1.05, 0.1]}
-        fontSize={0.11}
-        color={nameColor}
-        font="/fonts/playfair.woff"
+        position={[0, 1.12, 0.115]}
+        fontSize={0.13}
+        color={h ? "#f0ecff" : "#ccc8e8"}
         anchorX="center"
         anchorY="middle"
-        maxWidth={0.5}
+        maxWidth={0.55}
         textAlign="center"
+        outlineWidth={0.004}
+        outlineColor="#000000"
+        outlineOpacity={0.6}
       >
-        {tombstone.repo_name.length > 12
-          ? tombstone.repo_name.slice(0, 11) + "…"
-          : tombstone.repo_name}
+        {tombstone.repo_name.length > 10 ? tombstone.repo_name.slice(0, 9) + "…" : tombstone.repo_name}
       </Text>
 
       {/* Dates */}
       <Text
-        position={[0, 0.78, 0.1]}
-        fontSize={0.065}
-        color="#8880a8"
+        position={[0, 0.85, 0.115]}
+        fontSize={0.072}
+        color={h ? "#b0a8d8" : "#8880b0"}
         anchorX="center"
         anchorY="middle"
+        outlineWidth={0.003}
+        outlineColor="#000000"
+        outlineOpacity={0.5}
       >
-        {new Date(tombstone.born_at).getFullYear()} — {new Date(tombstone.died_at).getFullYear()}
+        {`${new Date(tombstone.born_at).getFullYear()} — ${new Date(tombstone.died_at).getFullYear()}`}
       </Text>
 
-      {/* Cause of death — small */}
+      {/* Cause of death */}
       <Text
-        position={[0, 0.58, 0.1]}
-        fontSize={0.055}
-        color={isHovered ? "#a78bfa" : "#7060a0"}
+        position={[0, 0.62, 0.115]}
+        fontSize={0.058}
+        color={h ? "#c4aaff" : "#8060a8"}
         anchorX="center"
         anchorY="middle"
-        maxWidth={0.48}
+        maxWidth={0.52}
         textAlign="center"
-        fontStyle="italic"
+        outlineWidth={0.003}
+        outlineColor="#000000"
+        outlineOpacity={0.6}
       >
-        {tombstone.cause_of_death.length > 20
-          ? tombstone.cause_of_death.slice(0, 19) + "…"
+        {tombstone.cause_of_death.length > 18
+          ? tombstone.cause_of_death.slice(0, 17) + "…"
           : tombstone.cause_of_death}
       </Text>
 
-      {/* Candles at base — lit on hover */}
-      {isHovered && (
-        <>
-          {[-0.22, 0.22].map((x, i) => (
-            <group key={i} position={[x, 0.18, 0.08]}>
-              <mesh>
-                <cylinderGeometry args={[0.018, 0.018, 0.12, 6]} />
-                <meshLambertMaterial color="#f5f0e8" />
-              </mesh>
-              <pointLight color="#fbbf24" intensity={0.6} distance={1} position={[0, 0.1, 0]} />
-              <mesh position={[0, 0.08, 0]}>
-                <sphereGeometry args={[0.025, 6, 6]} />
-                <meshBasicMaterial color="#fde68a" />
-              </mesh>
-            </group>
-          ))}
-        </>
-      )}
+      {/* Candles on hover */}
+      {isHovered && [-0.24, 0.24].map((x, i) => (
+        <group key={i} position={[x, 0.2, 0.1]}>
+          <mesh>
+            <cylinderGeometry args={[0.02, 0.02, 0.14, 7]} />
+            <meshStandardMaterial color="#f5f0e8" />
+          </mesh>
+          <pointLight color="#fbbf24" intensity={1.2} distance={1.8} position={[0, 0.1, 0]} />
+          <mesh position={[0, 0.09, 0]}>
+            <sphereGeometry args={[0.03, 6, 6]} />
+            <meshBasicMaterial color="#fff5c0" />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -208,275 +212,123 @@ function Tombstone3D({
 function GraveMound({ position, rotation }: { position: [number, number, number]; rotation: number }) {
   return (
     <group position={position} rotation={[0, rotation, 0]}>
-      <mesh position={[0, 0.04, 0.4]} rotation={[-0.1, 0, 0]} receiveShadow>
-        <boxGeometry args={[0.65, 0.08, 1.2]} />
-        <meshLambertMaterial color="#16150e" />
+      <mesh position={[0, 0.05, 0.5]} rotation={[-0.08, 0, 0]} receiveShadow>
+        <boxGeometry args={[0.7, 0.1, 1.4]} />
+        <meshStandardMaterial color="#191710" roughness={1} />
       </mesh>
     </group>
   );
 }
 
-// ─── Firefly particle system ──────────────────────────────────────────────────
+// ─── Fireflies ─────────────────────────────────────────────────────────────────
 function Fireflies() {
-  const count = 40;
-  const meshRef = useRef<THREE.Points>(null);
-  const positions = useRef(
-    Float32Array.from({ length: count * 3 }, (_, i) =>
-      i % 3 === 1 ? 0.3 + Math.random() * 2.5 : (Math.random() - 0.5) * 30
-    )
-  );
-  const phases = useRef(Array.from({ length: count }, () => Math.random() * Math.PI * 2));
+  const COUNT = 50;
+  const ref = useRef<THREE.Points>(null);
 
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return;
-    const t = clock.getElapsedTime();
-    const pos = meshRef.current.geometry.attributes.position.array as Float32Array;
-    for (let i = 0; i < count; i++) {
-      pos[i * 3 + 1] = positions.current[i * 3 + 1] + Math.sin(t * 0.6 + phases.current[i]) * 0.3;
-    }
-    meshRef.current.geometry.attributes.position.needsUpdate = true;
-    const mat = meshRef.current.material as THREE.PointsMaterial;
-    mat.opacity = 0.5 + Math.sin(t * 1.5) * 0.25;
-  });
+  const basePos = useRef(
+    Float32Array.from({ length: COUNT * 3 }, (_, i) => {
+      if (i % 3 === 1) return 0.5 + Math.random() * 2.5;
+      return (Math.random() - 0.5) * 32;
+    })
+  );
+  const phases = useRef(Array.from({ length: COUNT }, () => Math.random() * Math.PI * 2));
 
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(positions.current, 3));
+  geo.setAttribute("position", new THREE.BufferAttribute(basePos.current.slice(), 3));
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const arr = ref.current.geometry.attributes.position.array as Float32Array;
+    const t = clock.getElapsedTime();
+    for (let i = 0; i < COUNT; i++) {
+      arr[i * 3 + 1] = basePos.current[i * 3 + 1] + Math.sin(t * 0.7 + phases.current[i]) * 0.35;
+      arr[i * 3]     = basePos.current[i * 3]     + Math.cos(t * 0.4 + phases.current[i]) * 0.2;
+    }
+    ref.current.geometry.attributes.position.needsUpdate = true;
+    (ref.current.material as THREE.PointsMaterial).opacity = 0.5 + Math.sin(t * 1.8) * 0.25;
+  });
 
   return (
-    <points ref={meshRef} geometry={geo}>
-      <pointsMaterial color="#fbbf24" size={0.06} transparent opacity={0.6} sizeAttenuation />
+    <points ref={ref} geometry={geo}>
+      <pointsMaterial color="#fbbf24" size={0.07} transparent opacity={0.65} sizeAttenuation depthWrite={false} />
     </points>
   );
 }
 
-// ─── Ambient mist ─────────────────────────────────────────────────────────────
-function MistPlane() {
-  const ref = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    if (!ref.current) return;
-    ref.current.position.x = Math.sin(clock.getElapsedTime() * 0.08) * 3;
-  });
-  return (
-    <mesh ref={ref} position={[0, 0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[80, 80]} />
-      <meshBasicMaterial color="#4a3a6a" transparent opacity={0.04} />
-    </mesh>
-  );
-}
-
-// ─── Camera controller — gentle auto-drift ────────────────────────────────────
+// ─── Camera drift ─────────────────────────────────────────────────────────────
 function CameraRig() {
   const { camera } = useThree();
+  const startPos = useRef(new THREE.Vector3(0, 7, 16));
   useFrame(({ clock }) => {
-    const t = clock.getElapsedTime() * 0.06;
-    camera.position.x += (Math.sin(t) * 0.5 - camera.position.x) * 0.002;
+    const t = clock.getElapsedTime() * 0.04;
+    camera.position.x += (Math.sin(t) * 1.5 - camera.position.x + startPos.current.x) * 0.001;
   });
   return null;
 }
 
-// ─── Tombstone info panel (HTML overlay) ──────────────────────────────────────
-function TombstonePanel({
-  tombstone,
-  onClose,
-}: {
-  tombstone: TombstoneWithStats;
-  onClose: () => void;
-}) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => { setTimeout(() => setVisible(true), 10); }, []);
-
-  return (
-    <div
-      className="absolute inset-0 flex items-center justify-center z-20"
-      onClick={onClose}
-      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
-    >
-      <div
-        className="relative max-w-md w-full mx-4 rounded-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          transform: visible ? "translateY(0) scale(1)" : "translateY(32px) scale(0.95)",
-          opacity: visible ? 1 : 0,
-          transition: "all 0.4s cubic-bezier(0.16,1,0.3,1)",
-          background: "linear-gradient(160deg, #1e1c2e, #12101e)",
-          border: "1px solid rgba(139,92,246,0.3)",
-          boxShadow: "0 0 60px rgba(88,28,135,0.3), 0 0 120px rgba(88,28,135,0.1)",
-        }}
-      >
-        {/* Glow top line */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
-
-        <div className="p-8">
-          {/* Header */}
-          <div className="text-center mb-6">
-            <div className="text-zinc-600 text-[10px] font-mono tracking-[0.3em] uppercase mb-2">R.I.P.</div>
-            <h2 className="font-gothic text-3xl text-[#e8e4f8] mb-1"
-              style={{ textShadow: "0 0 30px rgba(139,92,246,0.4)" }}>
-              {tombstone.repo_name}
-            </h2>
-            {tombstone.github_username && (
-              <p className="text-zinc-600 text-xs font-mono">@{tombstone.github_username}</p>
-            )}
-          </div>
-
-          {/* Dates */}
-          <div className="text-center mb-5">
-            <span className="text-zinc-400 font-mono text-sm tracking-widest">
-              {new Date(tombstone.born_at).getFullYear()} — {new Date(tombstone.died_at).getFullYear()}
-            </span>
-            <p className="text-zinc-600 text-xs mt-0.5 italic">
-              ({ageString(tombstone.born_at, tombstone.died_at)})
-            </p>
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-purple-800/40" />
-            <span className="text-zinc-700 text-xs">✦</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-purple-800/40" />
-          </div>
-
-          {/* Cause */}
-          <div className="text-center mb-4">
-            <div className="text-[10px] text-zinc-600 uppercase tracking-[0.2em] mb-1">Cause of Death</div>
-            <p className="text-purple-300 text-sm italic font-medium">
-              &ldquo;{tombstone.cause_of_death}&rdquo;
-            </p>
-          </div>
-
-          {/* Last words */}
-          {tombstone.last_words && (
-            <div className="text-center mb-4">
-              <div className="text-[10px] text-zinc-600 uppercase tracking-[0.2em] mb-1">Last Words</div>
-              <p className="text-zinc-400 text-xs font-mono italic">
-                &ldquo;{tombstone.last_words}&rdquo;
-              </p>
-            </div>
-          )}
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            {[
-              { label: "Commits", value: tombstone.commits_count },
-              { label: "Peak Streak", value: tombstone.peak_streak_days ? `${tombstone.peak_streak_days}d` : "—" },
-              { label: "Best Day", value: tombstone.most_commits_one_day || "—" },
-            ].map((s) => (
-              <div key={s.label} className="text-center py-2 rounded-lg"
-                style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.15)" }}>
-                <div className="text-purple-300 font-mono font-bold text-sm">{s.value}</div>
-                <div className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Community */}
-          <div className="flex items-center justify-center gap-6 mb-6 text-sm">
-            <div className="flex items-center gap-1.5 text-amber-400/80">
-              <span>🕯️</span>
-              <span className="font-mono">{tombstone.candle_count}</span>
-              <span className="text-zinc-600 text-xs">candles</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-emerald-400/70">
-              <span>↑</span>
-              <span className="font-mono">{tombstone.resurrection_votes}</span>
-              <span className="text-zinc-600 text-xs">resurrect</span>
-            </div>
-          </div>
-
-          {/* Epitaph */}
-          {tombstone.epitaph && (
-            <div className="text-center mb-5 px-4 py-3 rounded-lg"
-              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.04)" }}>
-              <p className="text-zinc-400 text-sm italic font-gothic">{tombstone.epitaph}</p>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3">
-            <a
-              href={`/tombstone/${tombstone.id}`}
-              className="flex-1 text-center py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 20px rgba(139,92,246,0.3)" }}
-            >
-              View Full Tombstone →
-            </a>
-            <button
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-              style={{ border: "1px solid rgba(255,255,255,0.07)" }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main scene ───────────────────────────────────────────────────────────────
-interface GraveyardSceneProps {
-  tombstones: TombstoneWithStats[];
-}
-
-function scatterPositions(count: number): Array<{ pos: [number, number, number]; rot: number }> {
-  const result: Array<{ pos: [number, number, number]; rot: number }> = [];
-  const rows = Math.ceil(count / 5);
-  for (let i = 0; i < count; i++) {
-    const row = Math.floor(i / 5);
-    const col = i % 5;
-    result.push({
+// ─── Scatter layout ───────────────────────────────────────────────────────────
+function computeLayout(count: number) {
+  const cols = Math.min(5, count);
+  const rows = Math.ceil(count / cols);
+  return Array.from({ length: count }, (_, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    return {
       pos: [
-        (col - 2) * 3.2 + (Math.random() - 0.5) * 0.8,
+        (col - (cols - 1) / 2) * 3.4 + (Math.random() - 0.5) * 0.7,
         0,
-        row * 3.8 - rows * 1.5 + (Math.random() - 0.5) * 0.6,
-      ],
-      rot: (Math.random() - 0.5) * 0.18,
-    });
-  }
-  return result;
+        row * 4.2 - (rows - 1) * 1.8 + (Math.random() - 0.5) * 0.5,
+      ] as [number, number, number],
+      rot: (Math.random() - 0.5) * 0.2,
+    };
+  });
 }
 
+// ─── Scene ─────────────────────────────────────────────────────────────────────
 function Scene({ tombstones, onSelect }: { tombstones: TombstoneWithStats[]; onSelect: (t: TombstoneWithStats) => void }) {
   const [hovered, setHovered] = useState<string | null>(null);
-  const positions = scatterPositions(tombstones.length);
+  const layout = useRef(computeLayout(tombstones.length));
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.18} color="#a090c0" />
+      {/* Bright enough to see everything clearly */}
+      <ambientLight intensity={0.6} color="#b0a8d8" />
       <directionalLight
-        position={[-8, 12, -5]}
-        intensity={0.5}
-        color="#c0b0e0"
+        position={[-6, 14, 8]}
+        intensity={1.2}
+        color="#e0d8ff"
         castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-far={60}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-20}
+        shadow-camera-right={20}
+        shadow-camera-top={20}
+        shadow-camera-bottom={-20}
       />
-      <pointLight position={[0, 8, 0]} color="#4a3060" intensity={0.4} />
+      <pointLight position={[0, 10, 0]} color="#8860d0" intensity={0.8} />
+      <pointLight position={[0, 2, 8]} color="#6040a0" intensity={0.5} />
 
-      <fog attach="fog" args={["#0a0812", 18, 55]} />
-      <Stars radius={60} depth={30} count={1200} factor={3} saturation={0.2} fade />
+      {/* Distance fog */}
+      <fog attach="fog" args={["#0e0c18", 22, 58]} />
 
+      <Stars radius={70} depth={40} count={1600} factor={4} saturation={0.3} fade speed={0.5} />
       <CameraRig />
       <Ground />
-      <GrassPatches />
-      <MistPlane />
+      <GrassTufts />
       <Fireflies />
 
-      {/* Trees around the perimeter */}
-      {[[-12, 0, -8], [12, 0, -8], [-14, 0, 4], [14, 0, 2], [-10, 0, 14], [10, 0, 12], [0, 0, -14]].map(
-        ([x, y, z], i) => <BareTree key={i} position={[x, y, z] as [number, number, number]} />
+      {/* Trees */}
+      {([ [-13,0,-10],[13,0,-10],[-15,0,5],[15,0,3],[-11,0,16],[11,0,14],[0,0,-16],[-6,0,-14],[7,0,-13] ] as [number,number,number][]).map(
+        (p, i) => <BareTree key={i} pos={p} />
       )}
 
-      {/* Tombstones + mounds */}
+      {/* Mounds + stones */}
       {tombstones.map((t, i) => (
         <group key={t.id}>
-          <GraveMound position={[positions[i].pos[0], 0, positions[i].pos[2]]} rotation={positions[i].rot} />
+          <GraveMound position={layout.current[i].pos} rotation={layout.current[i].rot} />
           <Tombstone3D
             tombstone={t}
-            position={positions[i].pos}
-            rotation={positions[i].rot}
+            position={layout.current[i].pos}
+            rotation={layout.current[i].rot}
             isHovered={hovered === t.id}
             onHover={() => setHovered(t.id)}
             onUnhover={() => setHovered(null)}
@@ -488,40 +340,147 @@ function Scene({ tombstones, onSelect }: { tombstones: TombstoneWithStats[]; onS
   );
 }
 
-export default function GraveyardScene({ tombstones }: GraveyardSceneProps) {
+// ─── Info panel overlay ───────────────────────────────────────────────────────
+function TombstonePanel({ tombstone, onClose }: { tombstone: TombstoneWithStats; onClose: () => void }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setVisible(true), 10); return () => clearTimeout(t); }, []);
+
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center z-20"
+      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md mx-4 rounded-2xl overflow-hidden"
+        style={{
+          background: "linear-gradient(160deg, #1e1c2e 0%, #13111f 100%)",
+          border: "1px solid rgba(139,92,246,0.35)",
+          boxShadow: "0 0 80px rgba(88,28,135,0.4), 0 0 200px rgba(88,28,135,0.1)",
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0) scale(1)" : "translateY(24px) scale(0.96)",
+          transition: "all 0.4s cubic-bezier(0.16,1,0.3,1)",
+        }}
+      >
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/70 to-transparent" />
+
+        <div className="p-7">
+          <div className="text-center mb-5">
+            <p className="text-[10px] font-mono text-zinc-600 tracking-[0.35em] uppercase mb-1.5">R.I.P.</p>
+            <h2 className="font-gothic text-3xl mb-1" style={{ color: "#e8e4f8", textShadow: "0 0 30px rgba(139,92,246,0.5)" }}>
+              {tombstone.repo_name}
+            </h2>
+            {tombstone.github_username && <p className="text-zinc-600 text-xs font-mono">@{tombstone.github_username}</p>}
+          </div>
+
+          <div className="text-center mb-4">
+            <p className="text-zinc-400 font-mono text-sm tracking-widest">
+              {new Date(tombstone.born_at).getFullYear()} — {new Date(tombstone.died_at).getFullYear()}
+            </p>
+            <p className="text-zinc-600 text-xs italic mt-0.5">({ageString(tombstone.born_at, tombstone.died_at)})</p>
+          </div>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-purple-800/40" />
+            <span className="text-zinc-700 text-xs">✦</span>
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-purple-800/40" />
+          </div>
+
+          <div className="text-center mb-4">
+            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.2em] mb-1">Cause of Death</p>
+            <p className="text-purple-300 text-sm italic font-medium">&ldquo;{tombstone.cause_of_death}&rdquo;</p>
+          </div>
+
+          {tombstone.last_words && (
+            <div className="text-center mb-4">
+              <p className="text-[9px] text-zinc-600 uppercase tracking-[0.2em] mb-1">Last Words</p>
+              <p className="text-zinc-400 text-xs font-mono italic">&ldquo;{tombstone.last_words}&rdquo;</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {[
+              { label: "Commits", value: tombstone.commits_count },
+              { label: "Streak",  value: tombstone.peak_streak_days ? `${tombstone.peak_streak_days}d` : "—" },
+              { label: "Best Day", value: tombstone.most_commits_one_day || "—" },
+            ].map((s) => (
+              <div key={s.label} className="text-center py-2.5 rounded-xl"
+                style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.18)" }}>
+                <p className="text-purple-300 font-mono font-bold text-sm">{s.value}</p>
+                <p className="text-zinc-600 text-[9px] uppercase tracking-wider mt-0.5">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-center gap-6 mb-5 text-sm">
+            <div className="flex items-center gap-1.5 text-amber-400/80">
+              <span>🕯️</span><span className="font-mono">{tombstone.candle_count}</span>
+              <span className="text-zinc-600 text-xs">candles</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-emerald-400/70">
+              <span>↑</span><span className="font-mono">{tombstone.resurrection_votes}</span>
+              <span className="text-zinc-600 text-xs">resurrect</span>
+            </div>
+          </div>
+
+          {tombstone.epitaph && (
+            <div className="text-center mb-5 px-4 py-3 rounded-xl"
+              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <p className="text-zinc-400 text-sm italic font-gothic">{tombstone.epitaph}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <a href={`/tombstone/${tombstone.id}`}
+              className="flex-1 text-center py-3 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02]"
+              style={{ background: "linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow: "0 0 24px rgba(139,92,246,0.35)" }}>
+              View Full Tombstone →
+            </a>
+            <button onClick={onClose}
+              className="px-4 py-3 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+              style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+export default function GraveyardScene({ tombstones }: { tombstones: TombstoneWithStats[] }) {
   const [selected, setSelected] = useState<TombstoneWithStats | null>(null);
 
   return (
     <div className="relative w-full h-full">
       <Canvas
-        camera={{ position: [0, 5, 14], fov: 55, near: 0.1, far: 120 }}
+        camera={{ position: [0, 7, 16], fov: 52, near: 0.1, far: 150 }}
         shadows
-        gl={{ antialias: true, alpha: false }}
-        style={{ background: "#050309" }}
+        gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+        style={{ background: "#0e0c18" }}
       >
         <Suspense fallback={null}>
           <Scene tombstones={tombstones} onSelect={setSelected} />
         </Suspense>
         <OrbitControls
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={3}
-          maxDistance={35}
-          maxPolarAngle={Math.PI / 2.1}
-          minPolarAngle={0.2}
+          enablePan
+          enableZoom
+          enableRotate
+          minDistance={4}
+          maxDistance={40}
+          maxPolarAngle={Math.PI / 2.08}
+          minPolarAngle={0.15}
           target={[0, 0.5, 0]}
           makeDefault
         />
       </Canvas>
 
-      {/* Overlay: instructions */}
       {!selected && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-          <div
-            className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full text-xs text-zinc-400"
-            style={{ background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(12px)" }}
-          >
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none">
+          <div className="flex items-center gap-3 px-5 py-2.5 rounded-full text-xs text-zinc-400"
+            style={{ background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(12px)" }}>
             <span>🖱️ Drag to rotate</span>
             <span className="text-zinc-700">·</span>
             <span>🔍 Scroll to zoom</span>
@@ -531,10 +490,7 @@ export default function GraveyardScene({ tombstones }: GraveyardSceneProps) {
         </div>
       )}
 
-      {/* Tombstone info panel */}
-      {selected && (
-        <TombstonePanel tombstone={selected} onClose={() => setSelected(null)} />
-      )}
+      {selected && <TombstonePanel tombstone={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
