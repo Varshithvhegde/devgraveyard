@@ -7,9 +7,23 @@ export async function GET(request: NextRequest) {
   const language = searchParams.get("language");
   const sort = searchParams.get("sort") ?? "newest";
   const cursor = searchParams.get("cursor");
+  const repoId = searchParams.get("repo_id");
   const limit = 12;
 
   const supabase = await createClient();
+
+  // Lookup by repo_id — used for duplicate detection
+  if (repoId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ tombstones: [] });
+    const { data } = await supabase
+      .from("tombstones")
+      .select("id")
+      .eq("github_repo_id", repoId)
+      .eq("user_id", user.id)
+      .limit(1);
+    return NextResponse.json({ tombstones: data ?? [] });
+  }
 
   let query = supabase
     .from("tombstone_stats")

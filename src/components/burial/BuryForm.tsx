@@ -97,6 +97,18 @@ export default function BuryForm() {
         }),
       });
       const data = await res.json();
+      if (res.status === 409) {
+        // Already buried — find and redirect to it
+        toast.info(`${selectedRepo.name} is already buried. Taking you there...`);
+        const existing = await fetch(`/api/tombstones?repo_id=${selectedRepo.id}`);
+        const existingData = await existing.json();
+        if (existingData.tombstones?.[0]?.id) {
+          router.push(`/tombstone/${existingData.tombstones[0].id}`);
+        } else {
+          router.push("/my-graveyard");
+        }
+        return;
+      }
       if (!res.ok) throw new Error(data.error);
       toast.success("Project buried. Rest in peace. 🕯️");
       router.push(`/tombstone/${data.tombstone.id}`);

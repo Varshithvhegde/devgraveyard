@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TombstoneWithStats, RipMessage } from "@/types/tombstone";
 import TombstoneCard from "@/components/tombstone/TombstoneCard";
@@ -13,6 +13,8 @@ import EulogySection from "@/components/eulogy/EulogySection";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils";
 import { ageString } from "@/lib/github/analyze";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 
@@ -44,6 +46,29 @@ export default function TombstonePage({ params }: PageProps) {
   const [userVote, setUserVote] = useState(false);
   const [eulogy, setEulogy] = useState<string | null>(null);
   const [eulogyFresh, setEulogyFresh] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const router = useRouter();
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      confirmTimer.current = setTimeout(() => setConfirmDelete(false), 4000);
+      return;
+    }
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/tombstones/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      toast.success("Tombstone removed. May it rest in peace.");
+      router.push("/my-graveyard");
+    } catch {
+      toast.error("Failed to remove tombstone");
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const supabase = createClient();
@@ -147,6 +172,35 @@ export default function TombstonePage({ params }: PageProps) {
                 </svg>
                 View on GitHub
               </motion.a>
+
+              {/* Delete — owner only */}
+              {isOwner && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm transition-all"
+                  style={{
+                    border: `1px solid ${confirmDelete ? "rgba(239,68,68,0.5)" : "rgba(239,68,68,0.2)"}`,
+                    background: confirmDelete ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.05)",
+                    color: confirmDelete ? "rgba(252,165,165,0.9)" : "rgba(239,68,68,0.6)",
+                    boxShadow: confirmDelete ? "0 0 16px rgba(239,68,68,0.15)" : "none",
+                  }}
+                >
+                  {deleting ? (
+                    <span className="animate-spin text-xs">⏳</span>
+                  ) : (
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                      <path d="M2 3h9M5 3V2h3v1M3 3v8h7V3H3z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                  {deleting ? "Removing..." : confirmDelete ? "Click again to confirm" : "Remove Tombstone"}
+                </motion.button>
+              )}
             </div>
           </div>
 
