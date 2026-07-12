@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { RipMessage } from "@/types/tombstone";
 import { formatDate } from "@/lib/utils";
@@ -97,10 +97,7 @@ function MessageRow({
       {/* Delete button — only for own messages */}
       {isOwn && (
         <AnimatePresence>
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 0, scale: 1 }}
-            whileHover={{ opacity: 1 }}
+          <button
             className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={handleDelete}
             disabled={deleting}
@@ -130,22 +127,27 @@ function MessageRow({
                 </>
               )}
             </motion.div>
-          </motion.button>
+          </button>
         </AnimatePresence>
       )}
     </motion.div>
   );
 }
 
-export default function RipMessageList({ messages: initial, currentUserId, onDelete }: RipMessageListProps) {
-  const [messages, setMessages] = useState(initial);
+export default function RipMessageList({ messages, currentUserId, onDelete }: RipMessageListProps) {
+  const [localMessages, setLocalMessages] = useState(messages);
+
+  // Sync when parent adds new messages (prepended by onMessage callback)
+  useEffect(() => {
+    setLocalMessages(messages);
+  }, [messages]);
 
   const handleDelete = (id: string) => {
-    setMessages((m) => m.filter((msg) => msg.id !== id));
+    setLocalMessages((m) => m.filter((msg) => msg.id !== id));
     onDelete?.(id);
   };
 
-  if (messages.length === 0) {
+  if (localMessages.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -161,7 +163,7 @@ export default function RipMessageList({ messages: initial, currentUserId, onDel
   return (
     <motion.div layout className="space-y-2.5">
       <AnimatePresence mode="popLayout">
-        {messages.map((msg) => (
+        {localMessages.map((msg) => (
           <MessageRow
             key={msg.id}
             msg={msg}
