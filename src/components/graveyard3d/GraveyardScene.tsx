@@ -10,10 +10,18 @@ import { ageString } from "@/lib/github/analyze";
 // ─── Ground ──────────────────────────────────────────────────────────────────
 function Ground() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-      <planeGeometry args={[100, 100]} />
-      <meshStandardMaterial color="#1c1a10" roughness={1} />
-    </mesh>
+    <>
+      {/* Main ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+        <planeGeometry args={[100, 100, 8, 8]} />
+        <meshStandardMaterial color="#1e1f0e" roughness={1} />
+      </mesh>
+      {/* Path between rows */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+        <planeGeometry args={[1.2, 40]} />
+        <meshStandardMaterial color="#2a2415" roughness={1} transparent opacity={0.6} />
+      </mesh>
+    </>
   );
 }
 
@@ -103,8 +111,8 @@ function Tombstone3D({
   });
 
   const h = isHovered;
-  const stone = h ? "#4a4570" : "#353255";
-  const face  = h ? "#524e7a" : "#3e3a60";
+  const stone = h ? "#7a7880" : "#585660";
+  const face  = h ? "#8a8890" : "#686670";
 
   return (
     <group
@@ -118,72 +126,92 @@ function Tombstone3D({
       {/* Hover purple glow */}
       <pointLight ref={glowRef} color="#a78bfa" intensity={0} distance={4} position={[0, 1.5, 0.4]} />
 
+      {/* Ground dirt mound behind stone */}
+      <mesh receiveShadow position={[0, 0.04, 0.5]} rotation={[-0.1, 0, 0]}>
+        <boxGeometry args={[0.75, 0.08, 1.4]} />
+        <meshStandardMaterial color="#1a170d" roughness={1} />
+      </mesh>
+
       {/* Base slab */}
-      <mesh receiveShadow position={[0, 0.07, 0]}>
-        <boxGeometry args={[0.82, 0.14, 0.32]} />
-        <meshStandardMaterial color="#28243c" roughness={0.9} />
+      <mesh castShadow receiveShadow position={[0, 0.09, 0]}>
+        <boxGeometry args={[0.88, 0.18, 0.38]} />
+        <meshStandardMaterial color="#4a4850" roughness={0.95} metalness={0.02} />
       </mesh>
 
       {/* Stone body */}
-      <mesh castShadow receiveShadow position={[0, 0.88, 0]}>
-        <boxGeometry args={[0.66, 1.5, 0.22]} />
-        <meshStandardMaterial color={stone} roughness={0.85} />
+      <mesh castShadow receiveShadow position={[0, 0.92, 0]}>
+        <boxGeometry args={[0.68, 1.5, 0.24]} />
+        <meshStandardMaterial color={stone} roughness={0.92} metalness={0.02} />
       </mesh>
 
-      {/* Arch cap */}
-      <mesh castShadow position={[0, 1.65, 0]}>
-        <cylinderGeometry args={[0.33, 0.33, 0.22, 16, 1, false, 0, Math.PI]} />
-        <meshStandardMaterial color={stone} roughness={0.85} />
+      {/* Arch cap — half-cylinder */}
+      <mesh castShadow position={[0, 1.68, 0]}>
+        <cylinderGeometry args={[0.34, 0.34, 0.24, 20, 1, false, 0, Math.PI]} />
+        <meshStandardMaterial color={stone} roughness={0.92} metalness={0.02} />
       </mesh>
 
-      {/* Front face panel (slightly lighter) */}
-      <mesh position={[0, 0.88, 0.112]}>
-        <boxGeometry args={[0.62, 1.48, 0.002]} />
-        <meshStandardMaterial color={face} roughness={0.8} />
+      {/* Front recessed panel */}
+      <mesh position={[0, 0.92, 0.122]}>
+        <boxGeometry args={[0.56, 1.26, 0.002]} />
+        <meshStandardMaterial color={face} roughness={0.88} />
       </mesh>
+
+      {/* Moss / weathering at base — dark green strip */}
+      <mesh position={[0, 0.19, 0.123]}>
+        <planeGeometry args={[0.64, 0.18]} />
+        <meshStandardMaterial color="#1a2a0a" roughness={1} transparent opacity={0.55} />
+      </mesh>
+
+      {/* Lichen patches */}
+      {[[0.18, 0.6, 0.123], [-0.2, 0.95, 0.123], [0.1, 1.3, 0.123]].map(([x,y,z],i)=>(
+        <mesh key={i} position={[x,y,z]}>
+          <circleGeometry args={[0.04 + i*0.02, 6]} />
+          <meshStandardMaterial color="#3a4820" roughness={1} transparent opacity={0.4} />
+        </mesh>
+      ))}
 
       {/* Project name */}
       <Text
-        position={[0, 1.12, 0.115]}
-        fontSize={0.13}
-        color={h ? "#f0ecff" : "#ccc8e8"}
+        position={[0, 1.18, 0.126]}
+        fontSize={0.12}
+        color={h ? "#ffffff" : "#e8e4e0"}
         anchorX="center"
         anchorY="middle"
-        maxWidth={0.55}
+        maxWidth={0.5}
         textAlign="center"
-        outlineWidth={0.004}
-        outlineColor="#000000"
-        outlineOpacity={0.6}
+        outlineWidth={0.006}
+        outlineColor="#1a1612"
+        outlineOpacity={0.9}
       >
         {tombstone.repo_name.length > 10 ? tombstone.repo_name.slice(0, 9) + "…" : tombstone.repo_name}
       </Text>
 
       {/* Dates */}
       <Text
-        position={[0, 0.85, 0.115]}
-        fontSize={0.072}
-        color={h ? "#b0a8d8" : "#8880b0"}
+        position={[0, 0.92, 0.126]}
+        fontSize={0.068}
+        color={h ? "#d8d4d0" : "#b0aca8"}
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.003}
-        outlineColor="#000000"
-        outlineOpacity={0.5}
+        outlineWidth={0.005}
+        outlineColor="#1a1612"
+        outlineOpacity={0.9}
       >
         {`${new Date(tombstone.born_at).getFullYear()} — ${new Date(tombstone.died_at).getFullYear()}`}
       </Text>
 
       {/* Cause of death */}
       <Text
-        position={[0, 0.62, 0.115]}
-        fontSize={0.058}
-        color={h ? "#c4aaff" : "#8060a8"}
+        position={[0, 0.66, 0.126]}
+        fontSize={0.056}
+        color={h ? "#e8d0ff" : "#b898d8"}
         anchorX="center"
         anchorY="middle"
-        maxWidth={0.52}
+        maxWidth={0.5}
         textAlign="center"
-        outlineWidth={0.003}
-        outlineColor="#000000"
-        outlineOpacity={0.6}
+        outlineWidth={0.005}
+        outlineColor="#1a1612"
+        outlineOpacity={0.9}
       >
         {tombstone.cause_of_death.length > 18
           ? tombstone.cause_of_death.slice(0, 17) + "…"
@@ -191,15 +219,15 @@ function Tombstone3D({
       </Text>
 
       {/* Candles on hover */}
-      {isHovered && [-0.24, 0.24].map((x, i) => (
-        <group key={i} position={[x, 0.2, 0.1]}>
+      {isHovered && [-0.26, 0.26].map((x, i) => (
+        <group key={i} position={[x, 0.22, 0.12]}>
           <mesh>
-            <cylinderGeometry args={[0.02, 0.02, 0.14, 7]} />
+            <cylinderGeometry args={[0.022, 0.022, 0.15, 7]} />
             <meshStandardMaterial color="#f5f0e8" />
           </mesh>
-          <pointLight color="#fbbf24" intensity={1.2} distance={1.8} position={[0, 0.1, 0]} />
-          <mesh position={[0, 0.09, 0]}>
-            <sphereGeometry args={[0.03, 6, 6]} />
+          <pointLight color="#fbbf24" intensity={1.8} distance={2.2} position={[0, 0.12, 0]} />
+          <mesh position={[0, 0.1, 0]}>
+            <sphereGeometry args={[0.032, 8, 8]} />
             <meshBasicMaterial color="#fff5c0" />
           </mesh>
         </group>
@@ -291,21 +319,24 @@ function Scene({ tombstones, onSelect }: { tombstones: TombstoneWithStats[]; onS
 
   return (
     <>
-      {/* Bright enough to see everything clearly */}
-      <ambientLight intensity={0.6} color="#b0a8d8" />
+      {/* Moonlit night — cool blue-white key light */}
+      <ambientLight intensity={0.45} color="#8090c0" />
       <directionalLight
-        position={[-6, 14, 8]}
-        intensity={1.2}
-        color="#e0d8ff"
+        position={[-10, 18, 6]}
+        intensity={1.6}
+        color="#d0e0ff"
         castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-camera-left={-25}
+        shadow-camera-right={25}
+        shadow-camera-top={25}
+        shadow-camera-bottom={-25}
+        shadow-bias={-0.001}
       />
-      <pointLight position={[0, 10, 0]} color="#8860d0" intensity={0.8} />
-      <pointLight position={[0, 2, 8]} color="#6040a0" intensity={0.5} />
+      {/* Subtle fill from opposite side */}
+      <directionalLight position={[8, 6, -4]} intensity={0.3} color="#c0b8e8" />
+      {/* Warm ground bounce */}
+      <pointLight position={[0, 1, 0]} color="#604820" intensity={0.25} distance={30} />
 
       {/* Distance fog */}
       <fog attach="fog" args={["#0e0c18", 22, 58]} />
