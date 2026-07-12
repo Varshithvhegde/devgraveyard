@@ -1,21 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
 import { getUserRepos } from "@/lib/github/api";
+import { getGitHubToken } from "@/lib/github/token";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const token = await getGitHubToken();
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const token = session.provider_token;
   if (!token) {
     return NextResponse.json(
-      { error: "No GitHub token available. Please re-authenticate." },
+      { error: "GitHub token missing. Please sign out and reconnect GitHub." },
       { status: 401 }
     );
   }
@@ -25,9 +17,6 @@ export async function GET() {
     return NextResponse.json({ repos });
   } catch (err) {
     console.error("GitHub repos fetch error:", err);
-    return NextResponse.json(
-      { error: "Failed to fetch repositories" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch repositories" }, { status: 500 });
   }
 }

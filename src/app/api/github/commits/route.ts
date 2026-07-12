@@ -1,10 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import {
-  getRepoCommits,
-  getRepoLanguages,
-  getFirstAndLastCommit,
-} from "@/lib/github/api";
+import { getRepoCommits, getRepoLanguages, getFirstAndLastCommit } from "@/lib/github/api";
 import { computePeakObsession } from "@/lib/github/analyze";
+import { getGitHubToken } from "@/lib/github/token";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -15,17 +11,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid repo parameter" }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.provider_token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const token = await getGitHubToken();
+  if (!token) {
+    return NextResponse.json(
+      { error: "GitHub token missing. Please sign out and reconnect GitHub." },
+      { status: 401 }
+    );
   }
 
   const [owner, repo] = repoFullName.split("/");
-  const token = session.provider_token;
 
   try {
     const [commits, languages, { first, last }] = await Promise.all([
@@ -45,9 +39,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("Commits fetch error:", err);
-    return NextResponse.json(
-      { error: "Failed to analyze repository" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to analyze repository" }, { status: 500 });
   }
 }
