@@ -219,17 +219,17 @@
   animation: page-enter 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
 }
 
-/* ─── Tombstone card hover glow ──────────────── */
-.tombstone-card {
-  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1),
-              box-shadow 0.4s ease;
+/* ─── 3D Tombstone hover effects ─────────────── */
+.group:hover .tombstone-candle-glow {
+  opacity: 1 !important;
+  transition: opacity 0.8s ease;
 }
-.tombstone-card:hover {
-  box-shadow:
-    0 0 0   1px  rgba(139,92,246,0.2),
-    0 8px  40px  rgba(0,0,0,0.7),
-    0 0    60px  rgba(251,191,36,0.04),
-    0 0    20px  rgba(139,92,246,0.08) !important;
+.tombstone-candle-glow {
+  transition: opacity 0.8s ease;
+}
+.group:hover .tombstone-arch-highlight {
+  stroke: rgba(255,255,255,0.1);
+  transition: stroke 0.4s ease;
 }
 
 /* ─── Pulse glow ─────────────────────────────── */
