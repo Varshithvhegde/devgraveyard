@@ -27,6 +27,7 @@ export default function TombstonePage({ params }: PageProps) {
   const [userCandle, setUserCandle] = useState(false);
   const [userVote, setUserVote] = useState(false);
   const [eulogy, setEulogy] = useState<string | null>(null);
+  const [eulogyFresh, setEulogyFresh] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -186,13 +187,13 @@ export default function TombstonePage({ params }: PageProps) {
             <div className="space-y-3">
               <h2 className="font-gothic text-xl text-zinc-300">Eulogy</h2>
               {eulogy ? (
-                <EulogySection eulogy={eulogy} />
+                <EulogySection eulogy={eulogy} animate={eulogyFresh} />
               ) : (
                 <EulogyGenerator
                   tombstoneId={tombstone.id}
                   isOwner={isOwner}
                   existingEulogy={eulogy}
-                  onGenerated={setEulogy}
+                  onGenerated={(e) => { setEulogy(e); setEulogyFresh(true); }}
                 />
               )}
               {!eulogy && !isOwner && (

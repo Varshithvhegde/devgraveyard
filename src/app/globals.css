@@ -123,83 +123,151 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-color: #050505;
+    background-color: #030305;
     color: #f5f0e8;
   }
   html {
     @apply font-sans;
     color-scheme: dark;
   }
+
+  ::selection {
+    background: rgba(139, 92, 246, 0.35);
+    color: #f5f0e8;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+  }
+  *::-webkit-scrollbar { width: 4px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 2px;
+  }
 }
 
-/* Gothic custom fonts */
+/* ─── Typography ─────────────────────────────── */
 .font-gothic {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
 }
+.text-bone { color: #f5f0e8; }
 
-.text-bone {
-  color: #f5f0e8;
-}
-
-/* Tombstone arch shape */
-.tombstone-arch {
-  border-radius: 50% 50% 0 0 / 40px 40px 0 0;
-}
-
-/* Fog animation layers */
+/* ─── Fog ────────────────────────────────────── */
 @keyframes fog-drift-1 {
-  0% { transform: translateX(-20%) translateY(0); opacity: 0.2; }
-  50% { opacity: 0.4; }
-  100% { transform: translateX(20%) translateY(-5%); opacity: 0.2; }
+  0%   { transform: translateX(-25%) translateY(0)    scale(1);    opacity: 0.18; }
+  50%  { opacity: 0.32; }
+  100% { transform: translateX(25%)  translateY(-6%)  scale(1.05); opacity: 0.18; }
 }
-
 @keyframes fog-drift-2 {
-  0% { transform: translateX(15%) translateY(0); opacity: 0.15; }
-  50% { opacity: 0.3; }
-  100% { transform: translateX(-15%) translateY(3%); opacity: 0.15; }
+  0%   { transform: translateX(18%)  translateY(0)   scale(1.03); opacity: 0.12; }
+  50%  { opacity: 0.28; }
+  100% { transform: translateX(-18%) translateY(4%)  scale(1);    opacity: 0.12; }
+}
+@keyframes fog-drift-3 {
+  0%   { transform: translateX(-8%)  translateY(2%)  scale(0.98); opacity: 0.1; }
+  100% { transform: translateX(8%)   translateY(-2%) scale(1.02); opacity: 0.22; }
 }
 
 .fog-layer-1 {
-  background: radial-gradient(ellipse 80% 40% at 30% 70%, rgba(139, 92, 246, 0.15), transparent),
-              radial-gradient(ellipse 60% 30% at 70% 80%, rgba(100, 70, 200, 0.1), transparent);
-  animation: fog-drift-1 12s ease-in-out infinite alternate;
+  background:
+    radial-gradient(ellipse 90% 50% at 25% 75%, rgba(88,28,135,0.18), transparent),
+    radial-gradient(ellipse 70% 35% at 75% 85%, rgba(139,92,246,0.12), transparent);
+  animation: fog-drift-1 14s ease-in-out infinite alternate;
 }
-
 .fog-layer-2 {
-  background: radial-gradient(ellipse 70% 35% at 70% 60%, rgba(100, 70, 200, 0.12), transparent),
-              radial-gradient(ellipse 50% 25% at 20% 80%, rgba(139, 92, 246, 0.08), transparent);
-  animation: fog-drift-2 18s ease-in-out infinite alternate;
+  background:
+    radial-gradient(ellipse 80% 40% at 65% 65%, rgba(109,40,217,0.14), transparent),
+    radial-gradient(ellipse 55% 28% at 20% 80%, rgba(139,92,246,0.09), transparent);
+  animation: fog-drift-2 20s ease-in-out infinite alternate;
+}
+.fog-layer-3 {
+  background:
+    radial-gradient(ellipse 100% 30% at 50% 90%, rgba(251,191,36,0.04), transparent),
+    radial-gradient(ellipse 60% 20% at 50% 95%, rgba(139,92,246,0.07), transparent);
+  animation: fog-drift-3 26s ease-in-out infinite alternate;
 }
 
-/* Candle flame flicker */
+/* ─── Candle flicker ─────────────────────────── */
 @keyframes flicker {
-  0%, 100% { transform: scaleY(1) scaleX(1) rotate(0deg); opacity: 0.9; }
-  25% { transform: scaleY(1.1) scaleX(0.9) rotate(-2deg); opacity: 1; }
-  50% { transform: scaleY(0.95) scaleX(1.05) rotate(1deg); opacity: 0.8; }
-  75% { transform: scaleY(1.05) scaleX(0.95) rotate(-1deg); opacity: 0.95; }
+  0%,100% { transform: scaleY(1)    scaleX(1)    rotate(0deg);  opacity: 0.9; }
+  20%     { transform: scaleY(1.12) scaleX(0.88) rotate(-3deg); opacity: 1;   }
+  40%     { transform: scaleY(0.92) scaleX(1.08) rotate(2deg);  opacity: 0.8; }
+  60%     { transform: scaleY(1.06) scaleX(0.94) rotate(-1deg); opacity: 0.95; }
+  80%     { transform: scaleY(0.97) scaleX(1.03) rotate(1deg);  opacity: 0.85; }
 }
-
 .candle-lit .candle-flame {
-  animation: flicker 1.5s ease-in-out infinite;
+  animation: flicker 1.8s ease-in-out infinite;
   transform-origin: center bottom;
 }
 
-/* Float animation for hero coffin */
+/* ─── Float ──────────────────────────────────── */
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+  0%,100% { transform: translateY(0px)   rotate(0deg); }
+  30%     { transform: translateY(-10px) rotate(-1deg); }
+  70%     { transform: translateY(-14px) rotate(1deg); }
+}
+.animate-float { animation: float 5s ease-in-out infinite; }
+
+/* ─── Page enter ─────────────────────────────── */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-enter 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
 }
 
-.animate-float {
-  animation: float 4s ease-in-out infinite;
+/* ─── Tombstone card hover glow ──────────────── */
+.tombstone-card {
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.4s ease;
+}
+.tombstone-card:hover {
+  box-shadow:
+    0 0 0   1px  rgba(139,92,246,0.2),
+    0 8px  40px  rgba(0,0,0,0.7),
+    0 0    60px  rgba(251,191,36,0.04),
+    0 0    20px  rgba(139,92,246,0.08) !important;
 }
 
-/* Typewriter animation for eulogy */
-@keyframes typewriter {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ─── Pulse glow ─────────────────────────────── */
+@keyframes pulse-glow {
+  0%,100% { box-shadow: 0 0 12px rgba(139,92,246,0.3); }
+  50%     { box-shadow: 0 0 24px rgba(139,92,246,0.6); }
+}
+.pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
+
+/* ─── Eulogy scroll reveal ───────────────────── */
+@keyframes eulogy-reveal {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
+}
+.eulogy-reveal {
+  animation: eulogy-reveal 1s cubic-bezier(0.16,1,0.3,1) forwards;
 }
 
-.typewriter-char {
-  animation: typewriter 0.05s ease forwards;
+/* ─── Shimmer for skeletons ──────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 0%,
+    rgba(255,255,255,0.06) 50%,
+    rgba(255,255,255,0.03) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+/* ─── Reduced motion ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

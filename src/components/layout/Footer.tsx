@@ -1,22 +1,48 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
-    <footer className="border-t border-zinc-800/60 bg-black/40 py-8 mt-20">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center space-y-2">
-        <p className="text-zinc-600 text-sm font-gothic italic">
-          &ldquo;Every great project starts with passion. Some end there too.&rdquo;
-        </p>
-        <p className="text-zinc-700 text-xs font-mono">
-          Built with{" "}
-          <a
-            href="https://github.com/Varshithvhegde/devgraveyard"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-zinc-500 transition-colors underline underline-offset-2"
-          >
-            love and abandonment
-          </a>{" "}
-          · DevGraveyard
-        </p>
+    <footer className="relative border-t border-zinc-900 bg-[#030305] mt-20 overflow-hidden">
+      {/* subtle glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-px bg-gradient-to-r from-transparent via-purple-700/40 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_0%,rgba(88,28,135,0.04),transparent)]" />
+
+      <div className="relative max-w-6xl mx-auto px-6 py-12">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Brand */}
+          <div className="text-center md:text-left">
+            <div className="flex items-center gap-2 justify-center md:justify-start mb-2">
+              <span className="text-xl" style={{ filter: "drop-shadow(0 0 6px rgba(139,92,246,0.4))" }}>⚰️</span>
+              <span className="font-gothic text-base text-zinc-300">DevGraveyard</span>
+            </div>
+            <p className="text-zinc-700 text-xs italic font-gothic">
+              &ldquo;Every great project starts with passion. Some end there too.&rdquo;
+            </p>
+          </div>
+
+          {/* Links */}
+          <div className="flex items-center gap-6 text-xs text-zinc-700">
+            <Link href="/graveyard" className="hover:text-zinc-400 transition-colors">Browse</Link>
+            <Link href="/bury" className="hover:text-zinc-400 transition-colors">Bury a Project</Link>
+            <a
+              href="https://github.com/Varshithvhegde/devgraveyard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-zinc-400 transition-colors flex items-center gap-1"
+            >
+              <svg viewBox="0 0 16 16" className="w-3 h-3 fill-current">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+              </svg>
+              GitHub
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-zinc-900/80 text-center">
+          <p className="text-zinc-800 text-[11px] font-mono">
+            Built for the DEV Weekend Challenge · Passion Edition · 2026
+          </p>
+        </div>
       </div>
     </footer>
   );

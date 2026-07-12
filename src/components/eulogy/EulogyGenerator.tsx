@@ -18,8 +18,7 @@ export default function EulogyGenerator({
 }: EulogyGeneratorProps) {
   const [loading, setLoading] = useState(false);
 
-  if (!isOwner) return null;
-  if (existingEulogy) return null;
+  if (!isOwner || existingEulogy) return null;
 
   const generate = async () => {
     setLoading(true);
@@ -32,7 +31,7 @@ export default function EulogyGenerator({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       onGenerated(data.eulogy);
-      toast.success("Eulogy generated 🖤");
+      toast.success("Eulogy written 🖤");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Failed to generate eulogy");
     } finally {
@@ -44,15 +43,30 @@ export default function EulogyGenerator({
     <button
       onClick={generate}
       disabled={loading}
-      className="w-full py-3 border border-zinc-700 hover:border-purple-700 text-zinc-400 hover:text-purple-300 text-sm font-medium rounded-lg transition-all bg-zinc-900/50 hover:bg-purple-950/20"
+      className="group w-full py-4 rounded-xl border text-sm font-medium transition-all duration-300 relative overflow-hidden"
+      style={{
+        borderColor: loading ? "rgba(139,92,246,0.3)" : "rgba(139,92,246,0.2)",
+        background: "rgba(88,28,135,0.06)",
+        color: "rgba(167,139,250,0.8)",
+      }}
     >
-      {loading ? (
-        <span className="flex items-center justify-center gap-2">
-          <span className="animate-spin">⏳</span> Writing the eulogy...
-        </span>
-      ) : (
-        "✍️ Generate AI Eulogy (Breakup Letter)"
-      )}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: "radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.12), transparent)" }}
+      />
+      <span className="relative z-10 flex items-center justify-center gap-2">
+        {loading ? (
+          <>
+            <span className="w-3.5 h-3.5 border border-purple-400/50 border-t-purple-400 rounded-full animate-spin" />
+            <span>Writing the final words...</span>
+          </>
+        ) : (
+          <>
+            <span>✍️</span>
+            <span>Generate AI Eulogy</span>
+            <span className="text-zinc-600 text-xs ml-1">(Gemini writes a breakup letter)</span>
+          </>
+        )}
+      </span>
     </button>
   );
 }
