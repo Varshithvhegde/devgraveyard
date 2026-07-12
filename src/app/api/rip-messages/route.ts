@@ -78,3 +78,26 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ message: data }, { status: 201 });
 }
+
+export async function DELETE(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { message_id } = await request.json();
+
+  const { error } = await supabase
+    .from("rip_messages")
+    .delete()
+    .eq("id", message_id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}

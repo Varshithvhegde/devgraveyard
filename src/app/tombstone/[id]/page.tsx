@@ -233,9 +233,11 @@ export default function TombstonePage({ params }: PageProps) {
                 <span className="text-zinc-700 text-xs font-mono">{tombstone.rip_count} messages</span>
               </div>
               <RipMessageForm tombstoneId={tombstone.id} onMessage={(msg) => setMessages((m) => [msg, ...m])} />
-              <AnimatePresence>
-                <RipMessageList messages={messages} />
-              </AnimatePresence>
+              <RipMessageList
+                messages={messages}
+                currentUserId={user?.id}
+                onDelete={(id) => setMessages((m) => m.filter((msg) => msg.id !== id))}
+              />
             </div>
           </motion.div>
         </div>
