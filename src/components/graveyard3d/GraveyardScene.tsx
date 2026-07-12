@@ -75,6 +75,21 @@ function BareTree({ pos }: { pos: [number, number, number] }) {
   );
 }
 
+// ─── Tombstone shape (extruded arch) ─────────────────────────────────────────
+function makeTombstoneShape() {
+  const w = 0.34; // half-width
+  const h = 0.95; // body height before arch starts
+  const r = w;    // arch radius = half-width → perfect semicircle
+  const shape = new THREE.Shape();
+  shape.moveTo(-w, 0);
+  shape.lineTo(-w, h);
+  // Semicircular arch top
+  shape.absarc(0, h, r, Math.PI, 0, false);
+  shape.lineTo(w, 0);
+  shape.lineTo(-w, 0);
+  return shape;
+}
+
 // ─── 3D Tombstone ─────────────────────────────────────────────────────────────
 function Tombstone3D({
   tombstone,
@@ -138,80 +153,78 @@ function Tombstone3D({
         <meshStandardMaterial color="#4a4850" roughness={0.95} metalness={0.02} />
       </mesh>
 
-      {/* Stone body */}
-      <mesh castShadow receiveShadow position={[0, 0.92, 0]}>
-        <boxGeometry args={[0.68, 1.5, 0.24]} />
-        <meshStandardMaterial color={stone} roughness={0.92} metalness={0.02} />
+      {/* ONE solid extruded arch — the actual tombstone shape */}
+      <mesh castShadow receiveShadow position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <extrudeGeometry args={[makeTombstoneShape(), {
+          depth: 0.22,
+          bevelEnabled: true,
+          bevelThickness: 0.018,
+          bevelSize: 0.014,
+          bevelSegments: 4,
+          curveSegments: 24,
+        }]} />
+        <meshStandardMaterial color={stone} roughness={0.9} metalness={0.03} />
       </mesh>
 
-      {/* Arch cap — half-cylinder */}
-      <mesh castShadow position={[0, 1.68, 0]}>
-        <cylinderGeometry args={[0.34, 0.34, 0.24, 20, 1, false, 0, Math.PI]} />
-        <meshStandardMaterial color={stone} roughness={0.92} metalness={0.02} />
+      {/* Recessed inscription panel (slightly inset front face) */}
+      <mesh position={[0, 0.78, 0.135]}>
+        <shapeGeometry args={[(() => {
+          const s = new THREE.Shape();
+          s.moveTo(-0.22, 0); s.lineTo(-0.22, 0.65);
+          s.lineTo(0.22, 0.65); s.lineTo(0.22, 0); s.lineTo(-0.22, 0);
+          return s;
+        })()]} />
+        <meshStandardMaterial color={face} roughness={0.85} />
       </mesh>
 
-      {/* Front recessed panel */}
-      <mesh position={[0, 0.92, 0.122]}>
-        <boxGeometry args={[0.56, 1.26, 0.002]} />
-        <meshStandardMaterial color={face} roughness={0.88} />
+      {/* Moss at base */}
+      <mesh position={[0, 0.21, 0.136]}>
+        <planeGeometry args={[0.6, 0.12]} />
+        <meshStandardMaterial color="#1e2e08" roughness={1} transparent opacity={0.5} />
       </mesh>
 
-      {/* Moss / weathering at base — dark green strip */}
-      <mesh position={[0, 0.19, 0.123]}>
-        <planeGeometry args={[0.64, 0.18]} />
-        <meshStandardMaterial color="#1a2a0a" roughness={1} transparent opacity={0.55} />
-      </mesh>
-
-      {/* Lichen patches */}
-      {[[0.18, 0.6, 0.123], [-0.2, 0.95, 0.123], [0.1, 1.3, 0.123]].map(([x,y,z],i)=>(
-        <mesh key={i} position={[x,y,z]}>
-          <circleGeometry args={[0.04 + i*0.02, 6]} />
-          <meshStandardMaterial color="#3a4820" roughness={1} transparent opacity={0.4} />
-        </mesh>
-      ))}
-
-      {/* Project name */}
+      {/* Project name — in arch area */}
       <Text
-        position={[0, 1.18, 0.126]}
-        fontSize={0.12}
-        color={h ? "#ffffff" : "#e8e4e0"}
+        position={[0, 1.32, 0.14]}
+        fontSize={0.11}
+        color={h ? "#ffffff" : "#ede8e0"}
         anchorX="center"
         anchorY="middle"
         maxWidth={0.5}
         textAlign="center"
-        outlineWidth={0.006}
-        outlineColor="#1a1612"
-        outlineOpacity={0.9}
+        outlineWidth={0.007}
+        outlineColor="#0a0908"
+        outlineOpacity={1}
       >
         {tombstone.repo_name.length > 10 ? tombstone.repo_name.slice(0, 9) + "…" : tombstone.repo_name}
       </Text>
 
       {/* Dates */}
       <Text
-        position={[0, 0.92, 0.126]}
-        fontSize={0.068}
-        color={h ? "#d8d4d0" : "#b0aca8"}
+        position={[0, 1.02, 0.14]}
+        fontSize={0.065}
+        color={h ? "#d8d0c8" : "#a8a098"}
         anchorX="center"
         anchorY="middle"
-        outlineWidth={0.005}
-        outlineColor="#1a1612"
-        outlineOpacity={0.9}
+        outlineWidth={0.006}
+        outlineColor="#0a0908"
+        outlineOpacity={1}
       >
         {`${new Date(tombstone.born_at).getFullYear()} — ${new Date(tombstone.died_at).getFullYear()}`}
       </Text>
 
       {/* Cause of death */}
       <Text
-        position={[0, 0.66, 0.126]}
-        fontSize={0.056}
-        color={h ? "#e8d0ff" : "#b898d8"}
+        position={[0, 0.76, 0.14]}
+        fontSize={0.054}
+        color={h ? "#e0c8ff" : "#a880c8"}
         anchorX="center"
         anchorY="middle"
-        maxWidth={0.5}
+        maxWidth={0.46}
         textAlign="center"
-        outlineWidth={0.005}
-        outlineColor="#1a1612"
-        outlineOpacity={0.9}
+        outlineWidth={0.006}
+        outlineColor="#0a0908"
+        outlineOpacity={1}
       >
         {tombstone.cause_of_death.length > 18
           ? tombstone.cause_of_death.slice(0, 17) + "…"
@@ -219,16 +232,16 @@ function Tombstone3D({
       </Text>
 
       {/* Candles on hover */}
-      {isHovered && [-0.26, 0.26].map((x, i) => (
-        <group key={i} position={[x, 0.22, 0.12]}>
+      {isHovered && [-0.28, 0.28].map((x, i) => (
+        <group key={i} position={[x, 0.22, 0.14]}>
           <mesh>
-            <cylinderGeometry args={[0.022, 0.022, 0.15, 7]} />
+            <cylinderGeometry args={[0.022, 0.022, 0.14, 7]} />
             <meshStandardMaterial color="#f5f0e8" />
           </mesh>
-          <pointLight color="#fbbf24" intensity={1.8} distance={2.2} position={[0, 0.12, 0]} />
+          <pointLight color="#fbbf24" intensity={2.0} distance={2.5} position={[0, 0.11, 0]} />
           <mesh position={[0, 0.1, 0]}>
-            <sphereGeometry args={[0.032, 8, 8]} />
-            <meshBasicMaterial color="#fff5c0" />
+            <sphereGeometry args={[0.03, 8, 8]} />
+            <meshBasicMaterial color="#fff8c0" />
           </mesh>
         </group>
       ))}
